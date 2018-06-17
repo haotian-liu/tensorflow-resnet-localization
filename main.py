@@ -1,10 +1,12 @@
 import os
 import time
 import utils
+import random
 import numpy as np
 import tensorflow as tf
 from loader import Loader
 from resnet import Resnet18
+import progressbar
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -61,42 +63,42 @@ def main(unused_argv):
         tf.train.Saver(vars).restore(sess, utils.base_path() + "/models/init/models.ckpt")
         init_rest_vars.run()
 
-        for epoch in range(num_epochs):
-            idxs = list(range(len(train_set)))
-            import random
-            random.shuffle(idxs)
-            for step in range(steps_per_epoch - 1):
+        for phase in ('train'):
+            for epoch in range(num_epochs):
+                idxs = list(range(len(train_set)))
+                random.shuffle(idxs)
+                bar = progressbar.ProgressBar()
                 start_time = time.time()
+                for step in bar(range(steps_per_epoch - 1)):
+                    start_idx = step * batch_size
+                    end_idx = (step + 1) * batch_size
+                    images = [train_set[idxs[idx]]
+                              for idx in range(start_idx, end_idx)]
 
-                start_idx = step * batch_size
-                end_idx = (step + 1) * batch_size
-                images = [train_set[idxs[idx]]
-                          for idx in range(start_idx, end_idx)]
+                    features = np.array([x[0] for x in images])
+                    boxes = np.array([x[1] for x in images])
+                    im_sizes = np.array([x[2] for x in images])
+                    boxes = utils.crop_boxes(boxes, im_sizes)
+                    boxes = utils.box_transform(boxes, im_sizes)
+                    boxes = np.reshape(boxes, [-1, 1, 1, 4])
 
-                features = np.array([x[0] for x in images])
-                boxes = np.array([x[1] for x in images])
-                im_sizes = np.array([x[2] for x in images])
-                boxes = utils.crop_boxes(boxes, im_sizes)
-                boxes = utils.box_transform(boxes, im_sizes)
-                boxes = np.reshape(boxes, [-1, 1, 1, 4])
+                    _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
+                        'features:0': features,
+                        'boxes:0': boxes
+                    })
 
-                _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
-                    'features:0': features,
-                    'boxes:0': boxes
-                })
+                    outputs = np.reshape(outputs, [-1, 4])
+                    boxes = np.reshape(boxes, [-1, 4])
 
-                outputs = np.reshape(outputs, [-1, 4])
-                boxes = np.reshape(boxes, [-1, 4])
+                    acc = utils.compute_acc(outputs, boxes, im_sizes)
 
-                acc = utils.compute_acc(outputs, boxes, im_sizes)
-
-                nsample = model.batch_size
-                accs.update(acc, nsample)
-                losses.update(loss, nsample)
+                    nsample = model.batch_size
+                    accs.update(acc, nsample)
+                    losses.update(loss, nsample)
 
                 elapsed_time = time.time() - start_time
-                print('[{}]\tStep: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
-                    epoch + 1, step + 1, steps_per_epoch, losses.avg, accs.avg, elapsed_time))
+                print('[{}]\tEpoach: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
+                    phase, epoch, num_epochs, losses.avg, accs.avg, elapsed_time))
 
 if __name__ == "__main__":
     tf.app.run()
