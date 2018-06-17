@@ -62,21 +62,24 @@ def main(unused_argv):
         init_rest_vars.run()
 
         for epoch in range(num_epochs):
-            idx = list(range(len(train_set)))
+            idxs = list(range(len(train_set)))
             import random
-            random.shuffle(idx)
+            random.shuffle(idxs)
             for step in range(steps_per_epoch - 1):
-                end = time.time()
-                sub_idx = idx[step * batch_size:(step + 1) * batch_size]
-                images = [train_set[idx] for idx in sub_idx]
+                start_time = time.time()
 
-                features = np.array([x[0].eval() for x in images])
+                start_idx = step * batch_size
+                end_idx = (step + 1) * batch_size
+                images = [train_set[idxs[idx]]
+                          for idx in range(start_idx, end_idx)]
+
+                features = np.array([x[0] for x in images])
                 boxes = np.array([x[1] for x in images])
                 im_sizes = np.array([x[2] for x in images])
                 boxes = utils.crop_boxes(boxes, im_sizes)
                 boxes = utils.box_transform(boxes, im_sizes)
-
                 boxes = np.reshape(boxes, [-1, 1, 1, 4])
+
                 _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
                     'features:0': features,
                     'boxes:0': boxes
@@ -91,7 +94,7 @@ def main(unused_argv):
                 accs.update(acc, nsample)
                 losses.update(loss, nsample)
 
-                elapsed_time = time.time() - end
+                elapsed_time = time.time() - start_time
                 print('[{}]\tStep: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
                     epoch + 1, step + 1, steps_per_epoch, losses.avg, accs.avg, elapsed_time))
 

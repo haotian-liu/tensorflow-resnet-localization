@@ -4,10 +4,11 @@ import tensorflow as tf
 import numpy as np
 import _pickle as pickle
 from PIL import Image
+from scipy.misc import imresize
 import utils
 
 class CUB_Dataset(object):
-    def __init__(self, path, im_ids=[], transform=None):
+    def __init__(self, path, im_ids=[]):
         self.path = path
         with open(self.path + '/images.txt') as f:
             id_to_path = dict([l.split(' ', 1) for l in f.read().splitlines()])
@@ -17,17 +18,6 @@ class CUB_Dataset(object):
                 im_id, *box = line.split(' ')
                 id_to_box[im_id] = list(map(float, box))
         self.imgs = [(os.path.join(self.path + '/images', id_to_path[i]), id_to_box[i]) for i in im_ids]
-        if transform is None:
-            self.transform = [
-                lambda x: tf.image.resize_images(x, (224, 224)),
-                lambda x: (x - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225],
-            ]
-        else:
-            self.transform = transform
-
-    def get_imgs_np(self):
-        imgs = np.array(list(range(len(self.imgs))))
-        return imgs
 
     def __getitem__(self, index):
         path, box = self.imgs[index]
@@ -35,8 +25,16 @@ class CUB_Dataset(object):
         im_size = np.array(im.size, dtype='float32')
         box = np.array(box, dtype='float32')
 
-        for f in self.transform:
-            im = f(im)
+        im = imresize(im, (224, 224))
+        im = (im - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+
+        # self.transform = [
+        #     lambda x: tf.image.resize_images(x, (224, 224)),
+        #     lambda x: (x - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225],
+        # ]
+        #
+        # for f in self.transform:
+        #     im = f(im)
 
         return im, box, im_size
 
