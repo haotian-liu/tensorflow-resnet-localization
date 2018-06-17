@@ -29,8 +29,7 @@ class Block(object):
             bn1 = tf.layers.batch_normalization(conv1, training=self.training, name="bn_1")
 
             conv2 = tf.layers.conv2d(bn1, self.filters, self.kernel_size, strides=1,
-                                     activation=tf.nn.relu, padding="SAME", name="conv_2",
-                                     use_bias=False)
+                                     padding="SAME", name="conv_2", use_bias=False)
             bn2 = tf.layers.batch_normalization(conv2, training=self.training, name="bn_2")
 
             out = tf.nn.relu(bn2 + residual)
