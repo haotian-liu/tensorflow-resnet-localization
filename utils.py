@@ -1,4 +1,5 @@
 import os.path
+import time
 import numpy as np
 
 def base_path():
@@ -91,6 +92,21 @@ def compute_acc(preds, targets, im_sizes, theta=0.75):
     IoU = compute_IoU(preds, targets)
     corr = (IoU >= theta).sum()
     return corr / preds.shape[0]
+
+class Timer(object):
+    def __init__(self):
+        self._start = None
+
+    def start(self):
+        self._start = time.time()
+
+    def end(self, mark=""):
+        elapsed_time = time.time() - self._start
+        print('Elapsed time ' + mark + ' {:.3f}'.format(elapsed_time))
+        self.reset()
+
+    def reset(self):
+        self._start = None
 
 class AverageMeter(object):
     def __init__(self):
