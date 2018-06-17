@@ -44,7 +44,7 @@ class Resnet18(object):
         self.graph = tf.Graph()
 
         self.batch_size = batch_size
-        self.fc, self.loss, self.mean_loss = None, None, None
+        self.fc, self.loss = None, None
 
     def block(self, filters, strides):
         return Block(filters=filters, kernel_size=3, strides=strides, training=self.training)
@@ -71,13 +71,11 @@ class Resnet18(object):
 
         boxes = tf.placeholder(dtype=tf.float32, shape=[None, 1, 1, 4], name="boxes")
 
-        loss_raw = tf.abs(fc - boxes)
-        loss = tf.where(loss_raw < 1, 0.5 * loss_raw ** 2, loss_raw - 0.5)
-        # loss = tf.reduce_sum(loss, axis=3, keepdims=True)
-        loss = tf.reduce_sum(loss)
+        # loss_raw = tf.abs(fc - boxes)
+        # loss = tf.where(loss_raw < 1, 0.5 * loss_raw ** 2, loss_raw - 0.5)
+        # # loss = tf.reduce_sum(loss, axis=3, keepdims=True)
+        # loss = tf.reduce_sum(loss)
 
-        # loss = tf.nn.l2_loss(fc - boxes)
-
-        self.mean_loss = tf.reduce_mean(loss)
+        loss = tf.losses.huber_loss(boxes, fc, reduction=tf.losses.Reduction.MEAN)
 
         self.fc, self.loss = fc, loss
