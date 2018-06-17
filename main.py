@@ -12,8 +12,6 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
-num_epochs = 20
-
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -21,11 +19,13 @@ flags.DEFINE_boolean('CPU', False, 'If false, tot_ratio will be set to 1,'
                                    'it will be overridden by FLAGS.tot_ratio.')
 flags.DEFINE_float('ratio', 0.05, 'If changed, tot_ratio will be changed.')
 flags.DEFINE_integer('max_threads', 4, 'Specify max threads (default=4)')
+flags.DEFINE_integer('batch_size', 32, 'Specify batch size (default=32)')
+flags.DEFINE_integer('num_epochs', 20, 'Specify training epochs (default=20)')
 
 total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
-print("Using total ratio as", total_ratio)
-print("Using %d threads" % FLAGS.max_threads)
+print("Using %f as the total ratio, %d threads." % (total_ratio, FLAGS.max_threads))
+print("Training %d epochs with a batch size of %d." % (FLAGS.num_epochs, FLAGS.batch_size))
 
 pool = ThreadPool(FLAGS.max_threads)
 
@@ -33,9 +33,8 @@ def main(unused_argv):
     loader = Loader(base_path=None, path="/data")
     datasets = loader.CUB(ratio=0.2, total_ratio=total_ratio)
     train_set = datasets["train"]
-    batch_size = 32
-    steps_per_epoch = int(len(train_set) / batch_size)
-    model = Resnet18(mode="train", batch_size=batch_size)
+    steps_per_epoch = int(len(train_set) / FLAGS.batch_size)
+    model = Resnet18(mode="train", batch_size=FLAGS.batch_size)
     with model.graph.as_default():
         model.preload()
 
@@ -67,7 +66,7 @@ def main(unused_argv):
         init_rest_vars.run()
 
         for phase in ('train'):
-            for epoch in range(num_epochs):
+            for epoch in range(FLAGS.num_epochs):
                 accs = utils.AverageMeter()
                 losses = utils.AverageMeter()
                 idxs = list(range(len(train_set)))
@@ -75,8 +74,8 @@ def main(unused_argv):
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
                 for step in bar(range(steps_per_epoch - 1)):
-                    start_idx = step * batch_size
-                    end_idx = (step + 1) * batch_size
+                    start_idx = step * FLAGS.batch_size
+                    end_idx = (step + 1) * FLAGS.batch_size
 
                     # Use multi-thread to accelerate data loading
                     images = pool.map(lambda idx: train_set[idxs[idx]], range(start_idx, end_idx))
@@ -105,8 +104,8 @@ def main(unused_argv):
                     losses.update(loss, nsample)
 
                 elapsed_time = time.time() - start_time
-                print('[{}]\tEpoach: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
-                    phase, epoch, num_epochs, losses.avg, accs.avg, elapsed_time))
+                print('[{}]\tEpoch: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
+                    phase, epoch, FLAGS.num_epochs, losses.avg, accs.avg, elapsed_time))
 
 if __name__ == "__main__":
     tf.app.run()
