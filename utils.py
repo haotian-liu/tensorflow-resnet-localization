@@ -62,7 +62,7 @@ def compute_IoU(boxes1, boxes2):
     boxes2 = to_2d_tensor(boxes2)
     boxes2 = xywh_to_x1y1x2y2(boxes2)
 
-    intersec = boxes1.clone()
+    intersec = np.copy(boxes1)
     intersec[:, 0] = np.maximum(boxes1[:, 0], boxes2[:, 0])
     intersec[:, 1] = np.maximum(boxes1[:, 1], boxes2[:, 1])
     intersec[:, 2] = np.minimum(boxes1[:, 2], boxes2[:, 2])
@@ -82,3 +82,28 @@ def compute_IoU(boxes1, boxes2):
     assert((a1 + a2 - ia <= 0).sum() == 0)
 
     return ia / (a1 + a2 - ia)
+
+
+def compute_acc(preds, targets, im_sizes, theta=0.75):
+    preds = box_transform_inv(np.copy(preds), im_sizes)
+    preds = crop_boxes(preds, im_sizes)
+    targets = box_transform_inv(np.copy(targets), im_sizes)
+    IoU = compute_IoU(preds, targets)
+    corr = (IoU >= theta).sum()
+    return corr / preds.shape[0]
+
+class AverageMeter(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.cnt += n
+        self.avg = self.sum / self.cnt

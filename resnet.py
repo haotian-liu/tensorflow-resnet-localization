@@ -70,7 +70,8 @@ class Resnet18(object):
 
         loss_raw = tf.abs(fc - boxes)
         loss = tf.where(loss_raw < 1, 0.5 * loss_raw ** 2, loss_raw - 0.5)
-        loss = tf.reduce_sum(loss, axis=3, keepdims=True)
+        # loss = tf.reduce_sum(loss, axis=3, keepdims=True)
+        loss = tf.reduce_sum(loss)
 
         # loss = tf.nn.l2_loss(fc - boxes)
 
