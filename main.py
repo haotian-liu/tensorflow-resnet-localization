@@ -61,13 +61,13 @@ def main(unused_argv):
         init_rest_vars.run()
 
         for phase in ('train'):
-            bar = progressbar.ProgressBar()
             for epoch in range(num_epochs):
                 accs = utils.AverageMeter()
                 losses = utils.AverageMeter()
                 idxs = list(range(len(train_set)))
                 random.shuffle(idxs)
                 start_time = time.time()
+                bar = progressbar.ProgressBar()
                 for step in bar(range(steps_per_epoch - 1)):
                     start_idx = step * batch_size
                     end_idx = (step + 1) * batch_size
