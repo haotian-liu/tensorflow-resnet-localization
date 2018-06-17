@@ -12,21 +12,30 @@ class CUB_Dataset(object):
         self.path = path
         with open(self.path + '/images.txt') as f:
             id_to_path = dict([l.split(' ', 1) for l in f.read().splitlines()])
+        with open(self.path + '/sizes.txt') as f:
+            id_to_sizes = dict([l.split(' ', 1) for l in f.read().splitlines()])
+        for key, value in id_to_sizes.items():
+            id_to_sizes[key] = tuple([int(x) for x in value.split(' ')])
         with open(self.path + '/bounding_boxes.txt') as f:
             id_to_box = dict()
             for line in f.read().splitlines():
                 im_id, *box = line.split(' ')
                 id_to_box[im_id] = list(map(float, box))
-        self.imgs = [(os.path.join(self.path + '/images', id_to_path[i]), id_to_box[i]) for i in im_ids]
+        self.imgs = [(os.path.join(self.path + '/images', id_to_path[i]),
+                      id_to_box[i],
+                      id_to_sizes[i]) for i in im_ids]
 
     def __getitem__(self, index):
-        path, box = self.imgs[index]
+        path, box, im_size = self.imgs[index]
         im = Image.open(path).convert('RGB')
-        im_size = np.array(im.size, dtype='float32')
+        # im_size = np.array(im.size, dtype='float32')
+        im_size = np.array(im_size, dtype=np.float32)
         box = np.array(box, dtype='float32')
 
-        im = imresize(im, (224, 224))
-        im = (im - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+        im = np.array(im)
+
+        # im = imresize(im, (224, 224))
+        # im = (im - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
 
         # self.transform = [
         #     lambda x: tf.image.resize_images(x, (224, 224)),

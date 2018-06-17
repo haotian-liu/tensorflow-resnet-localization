@@ -52,6 +52,9 @@ class Resnet18(object):
     def preload(self):
         features = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, 224, 224, 3], name="features")
 
+        # Preprocess: normalize
+        features = (features - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+
         with tf.variable_scope('conv1'):
             conv1 = tf.layers.conv2d(features, 64, 7, strides=2, activation=tf.nn.relu,
                                      padding="SAME", name="conv", use_bias=False)
