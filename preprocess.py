@@ -56,7 +56,7 @@ if args.resize:
 
         print("Saving File %s", i)
 
-    sizes_buffer = '\n'.join([' '.join([str(id), str(size[0]), str(size[1])])
+    sizes_buffer = '\n'.join([' '.join([str(id+1), str(size[0]), str(size[1])])
                               for id, size in enumerate(img_sizes)])
     with open(utils.path("data/sizes.txt"), "w") as f:
         f.write(sizes_buffer)
