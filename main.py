@@ -13,11 +13,11 @@ num_epochs = 20
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean('GPU', False, 'If true, tot_ratio will be set to 1,'
+flags.DEFINE_boolean('CPU', False, 'If false, tot_ratio will be set to 1,'
                                    'it will be overridden by FLAGS.tot_ratio.')
 flags.DEFINE_float('ratio', 0.05, 'If changed, tot_ratio will be changed.')
 
-total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 1.0 if FLAGS.GPU else 0.05
+total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
 print("Using total ratio as", total_ratio)
 
