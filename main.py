@@ -56,18 +56,17 @@ def main(unused_argv):
     # import sys
     # sys.exit(0)
 
-    accs = utils.AverageMeter()
-    losses = utils.AverageMeter()
-
     with tf.Session(graph=model.graph) as sess:
         tf.train.Saver(vars).restore(sess, utils.base_path() + "/models/init/models.ckpt")
         init_rest_vars.run()
 
         for phase in ('train'):
+            bar = progressbar.ProgressBar()
             for epoch in range(num_epochs):
+                accs = utils.AverageMeter()
+                losses = utils.AverageMeter()
                 idxs = list(range(len(train_set)))
                 random.shuffle(idxs)
-                bar = progressbar.ProgressBar()
                 start_time = time.time()
                 for step in bar(range(steps_per_epoch - 1)):
                     start_idx = step * batch_size
