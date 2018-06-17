@@ -10,9 +10,20 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 num_epochs = 20
 
+flags = tf.app.flags
+FLAGS = flags.FLAGS
+
+flags.DEFINE_boolean('GPU', False, 'If true, tot_ratio will be set to 1,'
+                                   'it will be overridden by FLAGS.tot_ratio.')
+flags.DEFINE_float('ratio', 0.05, 'If changed, tot_ratio will be changed.')
+
+total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 1.0 if FLAGS.GPU else 0.05
+
+print("Using total ratio as", total_ratio)
+
 def main(unused_argv):
     loader = Loader(base_path=None, path="/data")
-    datasets = loader.CUB(ratio=0.2, tot_ratio=0.05)
+    datasets = loader.CUB(ratio=0.2, total_ratio=total_ratio)
     train_set = datasets["train"]
     batch_size = 32
     steps_per_epoch = int(len(train_set) / batch_size)
