@@ -1,0 +1,7 @@
+data/*
+*.path.tar
+*.tar.gz
+*.zip
+__pycache__/*
+models/*
+logs/*
