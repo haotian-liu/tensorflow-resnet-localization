@@ -8,6 +8,8 @@ from loader import Loader
 from resnet import Resnet18
 import progressbar
 
+from multiprocessing.dummy import Pool as ThreadPool
+
 tf.logging.set_verbosity(tf.logging.INFO)
 
 num_epochs = 20
@@ -18,10 +20,14 @@ FLAGS = flags.FLAGS
 flags.DEFINE_boolean('CPU', False, 'If false, tot_ratio will be set to 1,'
                                    'it will be overridden by FLAGS.tot_ratio.')
 flags.DEFINE_float('ratio', 0.05, 'If changed, tot_ratio will be changed.')
+flags.DEFINE_integer('max_threads', 4, 'Specify max threads (default=4)')
 
 total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
 print("Using total ratio as", total_ratio)
+print("Using %d threads" % FLAGS.max_threads)
+
+pool = ThreadPool(FLAGS.max_threads)
 
 def main(unused_argv):
     loader = Loader(base_path=None, path="/data")
@@ -71,8 +77,11 @@ def main(unused_argv):
                 for step in bar(range(steps_per_epoch - 1)):
                     start_idx = step * batch_size
                     end_idx = (step + 1) * batch_size
-                    images = [train_set[idxs[idx]]
-                              for idx in range(start_idx, end_idx)]
+
+                    # Use multi-thread to accelerate data loading
+                    images = pool.map(lambda idx: train_set[idxs[idx]], range(start_idx, end_idx))
+                    # images = [train_set[idxs[idx]]
+                    #           for idx in range(start_idx, end_idx)]
 
                     features = np.array([x[0] for x in images])
                     boxes = np.array([x[1] for x in images])
