@@ -11,7 +11,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"  # set an available GPU
 
 # FLAGS(?)
 T7_PATH = utils.path('models/resnet-18.t7')
-INIT_CHECKPOINT_DIR = utils.path('models/init')
+INIT_CHECKPOINT_DIR = utils.path('models/init_t7')
 
 
 # Open ResNet-18 torch checkpoint
