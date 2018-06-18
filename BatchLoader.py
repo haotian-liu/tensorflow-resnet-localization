@@ -28,6 +28,24 @@ def _batch_loader_fetcher(dataset, input_queue, buffer_queue, stop_flag, finishe
     finished_fetcher_lock.release()
 
 
+def _batch_loader_collector(buffer_queue, batch_queue, fetchers, finished_fetchers, batch_size, batch_exhausted):
+    while True:
+        buffer = []
+        while len(buffer) < batch_size and \
+                not (finished_fetchers.value == len(fetchers) and
+                     buffer_queue.empty()):
+            try:
+                e = buffer_queue.get_nowait()
+                buffer.append(e)
+            except Exception:
+                pass
+        if len(buffer) != batch_size:
+            break
+        batch_queue.put(buffer)
+
+    batch_exhausted.value = True
+
+
 class _BatchLoaderIter(object):
     def __init__(self, loader):
         self.batch_size = loader.batch_size
@@ -48,8 +66,14 @@ class _BatchLoaderIter(object):
                           self.finished_fetchers, self.finished_fetcher_lock))
             for _ in range(loader.num_workers)
         ]
+        self.batch_exhausted = self.manager.Value(c_bool, False)
+        self.batch_queue = self.manager.Queue(maxsize=loader.pre_fetch)
+        self.collector = Process(target=_batch_loader_collector,
+                                 args=(self.output_queue, self.batch_queue, self.fetchers, self.finished_fetchers,
+                                       self.batch_size, self.batch_exhausted))
 
         self.feeder.start()
+        self.collector.start()
         for fetcher in self.fetchers:
             fetcher.start()
 
@@ -57,20 +81,18 @@ class _BatchLoaderIter(object):
         return self
 
     def __next__(self):
-        buffer = []
-        while len(buffer) < self.batch_size and \
-                not (self.finished_fetchers.value == len(self.fetchers) and
-                     self.output_queue.empty()):
+        batch = None
+        while not self.batch_exhausted.value:
             try:
-                e = self.output_queue.get_nowait()
-                buffer.append(e)
+                batch = self.batch_queue.get_nowait()
+                break
             except Exception:
                 pass
 
-        if len(buffer) != self.batch_size:
+        if batch is None:
             raise StopIteration
 
-        return buffer
+        return batch
 
 
 class BatchLoader(object):
