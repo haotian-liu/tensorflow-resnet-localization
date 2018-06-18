@@ -31,18 +31,9 @@ class _BatchLoaderIter(object):
         return self
 
     def __next__(self):
-        batch = None
-        while not self.all_data_fetched:
-            try:
-                batch = self.batch_buffer.get_nowait()
-                break
-            except Exception:
-                pass
-
-        if batch is None:
+        if self.all_data_fetched and self.batch_buffer.empty():
             raise StopIteration
-
-        return batch
+        return self.batch_buffer.get_nowait()
 
 
 class BatchLoader(object):
