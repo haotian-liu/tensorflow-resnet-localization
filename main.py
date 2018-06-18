@@ -65,6 +65,8 @@ def main(unused_argv):
         tf.train.Saver(vars).restore(sess, utils.base_path() + "/models/init/models.ckpt")
         init_rest_vars.run()
 
+        from BatchLoader import BatchLoader
+
         for phase in ('train'):
             for epoch in range(FLAGS.num_epochs):
                 accs = utils.AverageMeter()
@@ -73,12 +75,14 @@ def main(unused_argv):
                 random.shuffle(idxs)
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
-                for step in bar(range(steps_per_epoch - 1)):
-                    start_idx = step * FLAGS.batch_size
-                    end_idx = (step + 1) * FLAGS.batch_size
 
-                    # Use multi-thread to accelerate data loading
-                    images = pool.map(lambda idx: train_set[idxs[idx]], range(start_idx, end_idx))
+                for images in bar(BatchLoader(train_set)):
+                # for step in bar(range(steps_per_epoch - 1)):
+                #     start_idx = step * FLAGS.batch_size
+                #     end_idx = (step + 1) * FLAGS.batch_size
+                #
+                #     # Use multi-thread to accelerate data loading
+                #     images = pool.map(lambda idx: train_set[idxs[idx]], range(start_idx, end_idx))
                     # images = [train_set[idxs[idx]]
                     #           for idx in range(start_idx, end_idx)]
 
