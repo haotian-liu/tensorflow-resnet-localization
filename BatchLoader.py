@@ -43,6 +43,9 @@ class _BatchLoaderIter(object):
         self.mutex.release()
         return self.batch_buffer.get()
 
+    def __del__(self):
+        self.fetcher.join()
+
 
 class BatchLoader(object):
     def __init__(self, dataset, batch_size=32, pre_fetch=6):
