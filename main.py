@@ -4,7 +4,7 @@ import utils
 import random
 import numpy as np
 import tensorflow as tf
-from loader import Loader
+from loader import Loader, CUB_Dataset
 from resnet import Resnet18
 import progressbar
 
@@ -80,20 +80,9 @@ def main(unused_argv):
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
 
-                for images in bar(BatchLoader(dataset, batch_size=FLAGS.batch_size,
-                                              pre_fetch=FLAGS.pre_fetch)):
-                # for step in bar(range(steps_per_epoch - 1)):
-                #     start_idx = step * FLAGS.batch_size
-                #     end_idx = (step + 1) * FLAGS.batch_size
-                #
-                #     # Use multi-thread to accelerate data loading
-                #     images = pool.map(lambda idx: train_set[idxs[idx]], range(start_idx, end_idx))
-                    # images = [train_set[idxs[idx]]
-                    #           for idx in range(start_idx, end_idx)]
-
-                    features = np.array([x[0] for x in images])
-                    boxes = np.array([x[1] for x in images])
-                    im_sizes = np.array([x[2] for x in images])
+                for features, boxes, im_sizes in bar(BatchLoader(dataset, batch_size=FLAGS.batch_size,
+                                                                 pre_fetch=FLAGS.pre_fetch,
+                                                                 op_fn=CUB_Dataset.list_to_tuple)):
                     boxes = utils.crop_boxes(boxes, im_sizes)
                     boxes = utils.box_transform(boxes, im_sizes)
                     boxes = np.reshape(boxes, [-1, 1, 1, 4])

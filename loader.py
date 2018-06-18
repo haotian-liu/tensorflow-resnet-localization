@@ -47,6 +47,13 @@ class CUB_Dataset(object):
 
         return im, box, im_size
 
+    @staticmethod
+    def list_to_tuple(images):
+        features = np.array([x[0] for x in images])
+        boxes = np.array([x[1] for x in images])
+        im_sizes = np.array([x[2] for x in images])
+        return (features, boxes, im_sizes)
+
     def __len__(self):
         return len(self.imgs)
 

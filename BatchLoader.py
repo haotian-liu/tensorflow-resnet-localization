@@ -8,6 +8,7 @@ class _BatchLoaderIter(object):
         self.batch_size = loader.batch_size
         self.num_threads = loader.num_threads
         self.dataset = loader.dataset
+        self.op_fn = loader.op_fn
         self.batch_buffer = Queue(loader.pre_fetch)
         self.steps = int(len(self.dataset) / self.batch_size)
 
@@ -25,6 +26,7 @@ class _BatchLoaderIter(object):
             start_idx = step * self.batch_size
             end_idx = (step + 1) * self.batch_size
             images = pool.map(lambda idx: self.dataset[idxs[idx]], range(start_idx, end_idx))
+            images = self.op_fn(images) if self.op_fn is not None else images
             self.batch_buffer.put(images)
 
         self.mutex.acquire()
@@ -49,11 +51,12 @@ class _BatchLoaderIter(object):
 
 
 class BatchLoader(object):
-    def __init__(self, dataset, batch_size=32, pre_fetch=6, num_threads=4):
+    def __init__(self, dataset, batch_size=32, pre_fetch=6, num_threads=4, op_fn=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.pre_fetch = pre_fetch
         self.num_threads = num_threads
+        self.op_fn = op_fn
 
     def __iter__(self):
         return _BatchLoaderIter(self)
