@@ -1,24 +1,21 @@
-from multiprocessing import Process, Queue, Value
+from multiprocessing import Process, Manager
 from ctypes import c_bool
 import random
 
 
-def _batch_loader_feeder(size, q: Queue, stop_flag: Value):
+def _batch_loader_feeder(size, q, stop_flag):
     idxs = list(range(size))
     random.shuffle(idxs)
     for idx in idxs:
         q.put(idx)
 
-    with stop_flag.get_lock():
-        stop_flag.value = True
+    stop_flag.value = True
 
 
-def _batch_loader_fetcher(dataset, input_queue: Queue, buffer_queue: Queue, stop_flag: Value,
-                          finished_fetchers: Value):
+def _batch_loader_fetcher(dataset, input_queue, buffer_queue, stop_flag, finished_fetchers, finished_fetcher_lock):
     while True:
-        with stop_flag.get_lock():
-            if stop_flag.value is True and input_queue.empty():
-                break
+        if stop_flag.value is True and input_queue.empty():
+            break
 
         try:
             idx = input_queue.get_nowait()
@@ -26,25 +23,29 @@ def _batch_loader_fetcher(dataset, input_queue: Queue, buffer_queue: Queue, stop
         except Exception:
             pass
 
-    with finished_fetchers.get_lock():
-        finished_fetchers.value += 1
+    finished_fetcher_lock.acquire()
+    finished_fetchers.value += 1
+    finished_fetcher_lock.release()
+
 
 class _BatchLoaderIter(object):
     def __init__(self, loader):
         self.batch_size = loader.batch_size
         queue_size = loader.batch_size * loader.pre_fetch
-        self.input_queue = Queue(maxsize=queue_size)
-        self.output_queue = Queue(maxsize=queue_size)
-        self.stop_flag = Value(c_bool, False)
+        self.manager = Manager()
+        self.input_queue = self.manager.Queue(maxsize=queue_size)
+        self.output_queue = self.manager.Queue(maxsize=queue_size)
+        self.stop_flag = self.manager.Value(c_bool, False)
 
         self.feeder = Process(target=_batch_loader_feeder,
                               args=(len(loader.dataset), self.input_queue, self.stop_flag))
 
-        self.finished_fetchers = Value('i', 0)
+        self.finished_fetchers = self.manager.Value('i', 0)
+        self.finished_fetcher_lock = self.manager.Lock()
         self.fetchers = [
             Process(target=_batch_loader_fetcher,
                     args=(loader.dataset, self.input_queue, self.output_queue, self.stop_flag,
-                          self.finished_fetchers))
+                          self.finished_fetchers, self.finished_fetcher_lock))
             for _ in range(loader.num_workers)
         ]
 
@@ -70,6 +71,7 @@ class _BatchLoaderIter(object):
             raise StopIteration
 
         return buffer
+
 
 class BatchLoader(object):
     def __init__(self, dataset, batch_size=32, num_workers=2, pre_fetch=6):
