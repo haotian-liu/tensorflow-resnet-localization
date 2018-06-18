@@ -69,16 +69,18 @@ def main(unused_argv):
 
         from BatchLoader import BatchLoader
 
-        for phase in ('train'):
-            for epoch in range(FLAGS.num_epochs):
+        for epoch in range(FLAGS.num_epochs):
+            for phase in ('train', 'test'):
+                dataset = datasets[phase]
+
                 accs = utils.AverageMeter()
                 losses = utils.AverageMeter()
-                idxs = list(range(len(train_set)))
+                idxs = list(range(len(dataset)))
                 random.shuffle(idxs)
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
 
-                for images in bar(BatchLoader(train_set, batch_size=FLAGS.batch_size,
+                for images in bar(BatchLoader(dataset, batch_size=FLAGS.batch_size,
                                               pre_fetch=FLAGS.pre_fetch)):
                 # for step in bar(range(steps_per_epoch - 1)):
                 #     start_idx = step * FLAGS.batch_size
@@ -96,10 +98,16 @@ def main(unused_argv):
                     boxes = utils.box_transform(boxes, im_sizes)
                     boxes = np.reshape(boxes, [-1, 1, 1, 4])
 
-                    _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
-                        'features:0': features,
-                        'boxes:0': boxes
-                    })
+                    if phase == 'train':
+                        _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
+                            'features:0': features,
+                            'boxes:0': boxes
+                        })
+                    else:
+                        loss, outputs = sess.run([model.loss, model.fc], feed_dict={
+                            'features:0': features,
+                            'boxes:0': boxes
+                        })
 
                     outputs = np.reshape(outputs, [-1, 4])
                     boxes = np.reshape(boxes, [-1, 4])
