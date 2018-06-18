@@ -76,7 +76,7 @@ class _BatchLoaderIter(object):
                 break
             self.batch_queue.put(buffer)
 
-        self.batch_exhausted.value = True
+        self.batch_exhausted = True
 
     def __iter__(self):
         return self
