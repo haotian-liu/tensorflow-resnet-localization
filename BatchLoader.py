@@ -12,6 +12,7 @@ class _BatchLoaderIter(object):
         self.fetcher = Thread(target=self._batch_loader_fetcher)
         self.fetcher.start()
         self.all_data_fetched = False
+        self.mutex = Lock()
 
     def _batch_loader_fetcher(self):
         idxs = list(range(len(self.dataset)))
@@ -25,15 +26,22 @@ class _BatchLoaderIter(object):
             images = pool.map(lambda idx: self.dataset[idxs[idx]], range(start_idx, end_idx))
             self.batch_buffer.put(images)
 
+        self.mutex.acquire()
         self.all_data_fetched = True
+        self.mutex.release()
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        self.mutex.acquire()
+
         if self.all_data_fetched and self.batch_buffer.empty():
+            self.mutex.release()
             raise StopIteration
-        return self.batch_buffer.get_nowait()
+
+        self.mutex.release()
+        return self.batch_buffer.get()
 
 
 class BatchLoader(object):
