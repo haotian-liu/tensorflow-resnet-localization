@@ -1,4 +1,4 @@
-from multiprocessing.dummy import Process as Thread, Lock
+from multiprocessing.dummy import Process as Thread, Lock, Pool as ThreadPool
 from queue import Queue
 import random
 
@@ -7,76 +7,34 @@ class _BatchLoaderIter(object):
     def __init__(self, loader):
         self.batch_size = loader.batch_size
         self.dataset = loader.dataset
-        queue_size = loader.batch_size * loader.pre_fetch
-        self.input_queue = Queue(maxsize=queue_size)
-        self.output_queue = Queue(maxsize=queue_size)
-        self.stop_flag = False
+        self.batch_buffer = Queue(loader.pre_fetch)
 
-        self.feeder = Thread(target=self._batch_loader_feeder)
-
-        self.finished_fetchers = 0
-        self.finished_fetcher_lock = Lock()
-        self.fetchers = [
-            Thread(target=self._batch_loader_fetcher)
-            for _ in range(loader.num_workers)
-        ]
-        self.batch_exhausted = False
-        self.batch_queue = Queue(maxsize=loader.pre_fetch)
-        self.collector = Thread(target=self._batch_loader_collector)
-
-        self.feeder.start()
-        self.collector.start()
-        for fetcher in self.fetchers:
-            fetcher.start()
-
-    def _batch_loader_feeder(self):
-        idxs = list(range(len(self.dataset)))
-        random.shuffle(idxs)
-        for idx in idxs:
-            self.input_queue.put(idx)
-
-        self.stop_flag = True
+        self.fetcher = Thread(target=self._batch_loader_fetcher)
+        self.fetcher.start()
+        self.all_data_fetched = False
 
     def _batch_loader_fetcher(self):
-        while True:
-            if self.stop_flag is True and self.input_queue.empty():
-                break
+        idxs = list(range(len(self.dataset)))
+        random.shuffle(idxs)
+        steps_per_epoch = int(len(self.dataset) / self.batch_size)
+        pool = ThreadPool(4)
 
-            try:
-                idx = self.input_queue.get_nowait()
-                self.output_queue.put(self.dataset[idx])
-            except Exception:
-                pass
+        for step in range(steps_per_epoch):
+            start_idx = step * self.batch_size
+            end_idx = (step + 1) * self.batch_size
+            images = pool.map(lambda idx: self.dataset[idxs[idx]], range(start_idx, end_idx))
+            self.batch_buffer.put(images)
 
-        self.finished_fetcher_lock.acquire()
-        self.finished_fetchers += 1
-        self.finished_fetcher_lock.release()
-
-    def _batch_loader_collector(self):
-        while True:
-            buffer = []
-            while len(buffer) < self.batch_size and \
-                    not (self.finished_fetchers == len(self.fetchers) and
-                         self.output_queue.empty()):
-                try:
-                    e = self.output_queue.get_nowait()
-                    buffer.append(e)
-                except Exception:
-                    pass
-            if len(buffer) != self.batch_size:
-                break
-            self.batch_queue.put(buffer)
-
-        self.batch_exhausted = True
+        self.all_data_fetched = True
 
     def __iter__(self):
         return self
 
     def __next__(self):
         batch = None
-        while not self.batch_exhausted:
+        while not self.all_data_fetched:
             try:
-                batch = self.batch_queue.get_nowait()
+                batch = self.batch_buffer.get_nowait()
                 break
             except Exception:
                 pass
@@ -88,10 +46,9 @@ class _BatchLoaderIter(object):
 
 
 class BatchLoader(object):
-    def __init__(self, dataset, batch_size=32, num_workers=2, pre_fetch=6):
+    def __init__(self, dataset, batch_size=32, pre_fetch=6):
         self.dataset = dataset
         self.batch_size = batch_size
-        self.num_workers = num_workers
         self.pre_fetch = pre_fetch
         pass
 
