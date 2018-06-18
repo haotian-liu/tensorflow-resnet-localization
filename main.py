@@ -21,11 +21,13 @@ flags.DEFINE_float('ratio', 0.05, 'If changed, tot_ratio will be changed.')
 flags.DEFINE_integer('max_threads', 4, 'Specify max threads (default=4)')
 flags.DEFINE_integer('batch_size', 32, 'Specify batch size (default=32)')
 flags.DEFINE_integer('num_epochs', 20, 'Specify training epochs (default=20)')
+flags.DEFINE_integer('pre_fetch', 6, 'Specify prefetch dataset count (default=6)')
 
 total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
 print("Using %f as the total ratio, %d threads." % (total_ratio, FLAGS.max_threads))
-print("Training %d epochs with a batch size of %d." % (FLAGS.num_epochs, FLAGS.batch_size))
+print("Training %d epochs with a batch size of %d, pre-fetching %d batches."
+      % (FLAGS.num_epochs, FLAGS.batch_size, FLAGS.pre_fetch))
 
 pool = ThreadPool(FLAGS.max_threads)
 
@@ -76,7 +78,8 @@ def main(unused_argv):
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
 
-                for images in bar(BatchLoader(train_set)):
+                for images in bar(BatchLoader(train_set, batch_size=FLAGS.batch_size,
+                                              pre_fetch=FLAGS.pre_fetch)):
                 # for step in bar(range(steps_per_epoch - 1)):
                 #     start_idx = step * FLAGS.batch_size
                 #     end_idx = (step + 1) * FLAGS.batch_size

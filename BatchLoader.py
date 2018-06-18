@@ -32,7 +32,7 @@ def _batch_loader_fetcher(dataset, input_queue: Queue, buffer_queue: Queue, stop
 class _BatchLoaderIter(object):
     def __init__(self, loader):
         self.batch_size = loader.batch_size
-        queue_size = loader.batch_size * 6
+        queue_size = loader.batch_size * loader.pre_fetch
         self.input_queue = Queue(maxsize=queue_size)
         self.output_queue = Queue(maxsize=queue_size)
         self.stop_flag = Value(c_bool, False)
@@ -72,10 +72,11 @@ class _BatchLoaderIter(object):
         return buffer
 
 class BatchLoader(object):
-    def __init__(self, dataset, batch_size=32, num_workers=2):
+    def __init__(self, dataset, batch_size=32, num_workers=2, pre_fetch=6):
         self.dataset = dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.pre_fetch = pre_fetch
         pass
 
     def __iter__(self):
