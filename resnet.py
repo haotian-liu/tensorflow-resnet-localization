@@ -19,7 +19,7 @@ class Block(object):
             if self.strides != 1:
                 residual = tf.layers.conv2d(net, self.filters, 1, strides=self.strides,
                                             padding="SAME", name="shortcut", use_bias=False)
-                residual = tf.layers.batch_normalization(residual, training=self.training, name="bn_0")
+                # residual = tf.layers.batch_normalization(residual, training=self.training, name="bn_0")
             else:
                 residual = net
 
