@@ -37,9 +37,8 @@ class Block(object):
         return out
 
 class Resnet18(object):
-    def __init__(self, mode, batch_size=32):
-        self.mode = mode
-        self.training = (mode == "train")
+    def __init__(self, batch_size=32):
+        self.training = None
         self.graph = tf.Graph()
 
         self.batch_size = batch_size
@@ -49,6 +48,7 @@ class Resnet18(object):
         return Block(filters=filters, kernel_size=3, strides=strides, training=self.training)
 
     def preload(self):
+        self.training = tf.placeholder(dtype=tf.bool, name="training")
         features = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, 224, 224, 3], name="features")
 
         # Preprocess: normalize

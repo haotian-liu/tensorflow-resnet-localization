@@ -37,7 +37,7 @@ def main(unused_argv):
     datasets = loader.CUB(ratio=0.2, total_ratio=total_ratio)
     train_set = datasets["train"]
     steps_per_epoch = int(len(train_set) / FLAGS.batch_size)
-    model = Resnet18(mode="train", batch_size=FLAGS.batch_size)
+    model = Resnet18(batch_size=FLAGS.batch_size)
     with model.graph.as_default():
         model.preload()
 
@@ -105,12 +105,14 @@ def main(unused_argv):
                     if phase == 'train':
                         _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
                             'features:0': features,
-                            'boxes:0': boxes
+                            'boxes:0': boxes,
+                            'training:0': phase == 'train'
                         })
                     else:
                         loss, outputs = sess.run([model.loss, model.fc], feed_dict={
                             'features:0': features,
-                            'boxes:0': boxes
+                            'boxes:0': boxes,
+                            'training:0': phase == 'train'
                         })
 
                     outputs = np.reshape(outputs, [-1, 4])
