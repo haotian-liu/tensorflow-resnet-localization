@@ -19,18 +19,18 @@ class Block(object):
             if self.strides != 1:
                 residual = tf.layers.conv2d(net, self.filters, 1, strides=self.strides,
                                             padding="SAME", name="shortcut", use_bias=False)
-                residual = tf.layers.batch_normalization(residual, training=self.training, name="bn_0")
+                residual = tf.layers.batch_normalization(residual, training=self.training, momentum=0.9, epsilon=1e-3, name="bn_0")
             else:
                 residual = net
 
             conv1 = tf.layers.conv2d(net, self.filters, self.kernel_size, strides=self.strides,
                                      activation=tf.nn.relu, padding="SAME", name="conv_1",
                                      use_bias=False)
-            bn1 = tf.layers.batch_normalization(conv1, training=self.training, name="bn_1")
+            bn1 = tf.layers.batch_normalization(conv1, training=self.training, momentum=0.9, epsilon=1e-3, name="bn_1")
 
             conv2 = tf.layers.conv2d(bn1, self.filters, self.kernel_size, strides=1,
                                      padding="SAME", name="conv_2", use_bias=False)
-            bn2 = tf.layers.batch_normalization(conv2, training=self.training, name="bn_2")
+            bn2 = tf.layers.batch_normalization(conv2, training=self.training, momentum=0.9, epsilon=1e-3, name="bn_2")
 
             out = tf.nn.relu(bn2 + residual)
 
@@ -48,7 +48,8 @@ class Resnet18(object):
         return Block(filters=filters, kernel_size=3, strides=strides, training=self.training)
 
     def preload(self):
-        self.training = tf.placeholder(dtype=tf.bool, name="training")
+        # self.training = tf.placeholder(dtype=tf.bool, name="training")
+        self.training = True
         features = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, 224, 224, 3], name="features")
 
         # Preprocess: normalize
@@ -57,7 +58,7 @@ class Resnet18(object):
         with tf.variable_scope('conv1'):
             conv1 = tf.layers.conv2d(features, 64, 7, strides=2, activation=tf.nn.relu,
                                      padding="SAME", name="conv", use_bias=False)
-            bn1 = tf.layers.batch_normalization(conv1, training=self.training, name="bn")
+            bn1 = tf.layers.batch_normalization(conv1, training=self.training, momentum=0.9, epsilon=1e-3, name="bn")
             pool1 = tf.layers.max_pooling2d(bn1, 3, 2, padding="SAME")
 
         conv2 = self.block(filters=64, strides=1).g(pool1, name="conv2")
