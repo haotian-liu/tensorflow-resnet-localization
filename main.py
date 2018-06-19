@@ -64,7 +64,6 @@ def main(unused_argv):
             #     .minimize(loss=model.loss, global_step=global_step)
 
         rest_vars = list(set([var for var in tf.global_variables()]) - set(vars))
-
         init_rest_vars = tf.variables_initializer(rest_vars)
 
     # writer = tf.summary.FileWriter("logs/", model.graph)
@@ -77,8 +76,11 @@ def main(unused_argv):
     # sys.exit(0)
 
     with tf.Session(graph=model.graph) as sess:
-        tf.train.Saver(vars).restore(sess, utils.base_path() + "/models/init/models.ckpt")
-        init_rest_vars.run()
+        if os.path.exists(utils.path("models/trained")):
+            tf.train.Saver().restore(sess, utils.path("models/trained/resnet18.ckpt"))
+        else:
+            init_rest_vars.run()
+            tf.train.Saver(vars).restore(sess, utils.path("models/init/models.ckpt"))
 
         from BatchLoader import BatchLoader
 
@@ -123,6 +125,7 @@ def main(unused_argv):
                 elapsed_time = time.time() - start_time
                 print('[{}]\tEpoch: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
                     phase, epoch, FLAGS.num_epochs, losses.avg, accs.avg, elapsed_time))
+        tf.train.Saver().save(sess, utils.path("models/trained/resnet18.ckpt"))
 
 if __name__ == "__main__":
     tf.app.run()
