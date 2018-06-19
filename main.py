@@ -56,8 +56,8 @@ def main(unused_argv):
 
             if FLAGS.fine_tune:
                 for index, (grad, var) in enumerate(grad_and_vars):
-                    if var.op.name.startswith("conv1") or var.op.name.startswith("conv2"):
-                        grad_and_vars[index] = (grad / 10.0, var)
+                    if var.op.name.startswith("dense") or var.op.name.startswith("conv5"):
+                        grad_and_vars[index] = (grad * 10.0, var)
 
             train_op = opt.apply_gradients(grad_and_vars, global_step=global_step)
             # train_op = tf.train.AdamOptimizer(learning_rate=learning_rate)\
