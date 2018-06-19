@@ -23,6 +23,7 @@ flags.DEFINE_integer('batch_size', 32, 'Specify batch size (default=32)')
 flags.DEFINE_integer('num_epochs', 20, 'Specify training epochs (default=20)')
 flags.DEFINE_integer('pre_fetch', 6, 'Specify prefetch dataset count (default=6)')
 flags.DEFINE_boolean('fine_tune', False, 'Specify whether to fine tune or not.')
+flags.DEFINE_string('log_path', None, 'Specify log path, default disabled.')
 
 total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
@@ -81,6 +82,7 @@ def main(unused_argv):
             tf.train.Saver(vars).restore(sess, utils.path("models/init/models.ckpt"))
 
         from BatchLoader import BatchLoader
+        LOG = utils.Log()
 
         for epoch in range(FLAGS.num_epochs):
             for phase in ('train', 'test'):
@@ -122,10 +124,15 @@ def main(unused_argv):
                     accs.update(acc, nsample)
                     losses.update(loss, nsample)
 
+                    LOG.add(phase, {"accu": acc, "loss": loss})
+
                 elapsed_time = time.time() - start_time
                 print('[{}]\tEpoch: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
                     phase, epoch, FLAGS.num_epochs, losses.avg, accs.avg, elapsed_time))
+
         tf.train.Saver().save(sess, utils.path("models/trained/resnet18.ckpt"))
+        if FLAGS.log_path is not None:
+            LOG.dump(FLAGS.log_path)
 
 if __name__ == "__main__":
     tf.app.run()

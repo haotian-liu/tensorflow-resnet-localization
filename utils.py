@@ -123,3 +123,24 @@ class AverageMeter(object):
         self.sum += val * n
         self.cnt += n
         self.avg = self.sum / self.cnt
+
+class Log(object):
+    def __init__(self):
+        self.train_log = []
+        self.test_log = []
+
+    def add(self, log_type, log):
+        logger = self.train_log if log_type == 'train' else self.test_log
+        logger.append(log)
+
+    def dump(self, dump_path):
+        import json
+        dump_path = path(dump_path)
+        json.dump({
+            "train": self.train_log,
+            "test": self.test_log,
+        }, open(dump_path, "w"))
+
+    def clear(self):
+        self.train_log.clear()
+        self.test_log.clear()
