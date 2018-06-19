@@ -35,8 +35,6 @@ pool = ThreadPool(FLAGS.max_threads)
 def main(unused_argv):
     loader = Loader(base_path=None, path="/data")
     datasets = loader.CUB(ratio=0.2, total_ratio=total_ratio)
-    train_set = datasets["train"]
-    steps_per_epoch = int(len(train_set) / FLAGS.batch_size)
     model = Resnet18(batch_size=FLAGS.batch_size)
     with model.graph.as_default():
         model.preload()
@@ -46,7 +44,7 @@ def main(unused_argv):
 
         global_step = tf.Variable(0, name='global_step', trainable=False)
         learning_rate = tf.train.exponential_decay(1e-3, global_step=global_step,
-                                                   decay_steps=5 * steps_per_epoch,
+                                                   decay_steps=5 * int(len(datasets["train"]) / FLAGS.batch_size),
                                                    decay_rate=0.1, staircase=True)
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
