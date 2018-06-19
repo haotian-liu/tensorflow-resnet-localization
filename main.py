@@ -47,8 +47,11 @@ def main(unused_argv):
         learning_rate = tf.train.exponential_decay(1e-3, global_step=global_step,
                                                    decay_steps=5 * steps_per_epoch,
                                                    decay_rate=0.1, staircase=True)
-        train_op = tf.train.AdamOptimizer(learning_rate=learning_rate)\
-            .minimize(loss=model.loss, global_step=global_step)
+
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            train_op = tf.train.AdamOptimizer(learning_rate=learning_rate)\
+                .minimize(loss=model.loss, global_step=global_step)
 
         rest_vars = list(set([var for var in tf.global_variables()]) - set(vars))
 
