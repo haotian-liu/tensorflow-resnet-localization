@@ -22,6 +22,7 @@ flags.DEFINE_integer('max_threads', 4, 'Specify max threads (default=4)')
 flags.DEFINE_integer('batch_size', 32, 'Specify batch size (default=32)')
 flags.DEFINE_integer('num_epochs', 20, 'Specify training epochs (default=20)')
 flags.DEFINE_integer('pre_fetch', 6, 'Specify prefetch dataset count (default=6)')
+flags.DEFINE_boolean('fine_tune', False, 'Specify whether to fine tune or not.')
 
 total_ratio = FLAGS.ratio if FLAGS.ratio != 0.05 else 0.05 if FLAGS.CPU else 1.0
 
@@ -50,8 +51,17 @@ def main(unused_argv):
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            train_op = tf.train.AdamOptimizer(learning_rate=learning_rate)\
-                .minimize(loss=model.loss, global_step=global_step)
+            opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            grad_and_vars = opt.compute_gradients(loss=model.loss)
+
+            if FLAGS.fine_tune:
+                for index, (grad, var) in enumerate(grad_and_vars):
+                    if var.op.name.startswith("conv1") or var.op.name.startswith("conv2"):
+                        grad_and_vars[index] = (grad / 10.0, var)
+
+            train_op = opt.apply_gradients(grad_and_vars, global_step=global_step)
+            # train_op = tf.train.AdamOptimizer(learning_rate=learning_rate)\
+            #     .minimize(loss=model.loss, global_step=global_step)
 
         rest_vars = list(set([var for var in tf.global_variables()]) - set(vars))
 
