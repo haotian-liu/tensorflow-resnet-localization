@@ -90,8 +90,6 @@ def main(unused_argv):
 
                 accs = utils.AverageMeter()
                 losses = utils.AverageMeter()
-                idxs = list(range(len(dataset)))
-                random.shuffle(idxs)
                 start_time = time.time()
                 bar = progressbar.ProgressBar()
 
