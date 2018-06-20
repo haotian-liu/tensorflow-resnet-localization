@@ -130,7 +130,7 @@ def main(unused_argv):
                 print('[{}]\tEpoch: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
                     phase, epoch, FLAGS.num_epochs, losses.avg, accs.avg, elapsed_time))
 
-        tf.train.Saver().save(sess, utils.path("models/trained/resnet18.ckpt"))
+        tf.train.Saver().save(sess, utils.path("models/trained/resnet18.ckpt"), global_step=global_step)
         if FLAGS.log_path is not None:
             LOG.dump(FLAGS.log_path)
 
