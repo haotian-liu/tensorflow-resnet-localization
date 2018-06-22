@@ -98,7 +98,6 @@ def main(unused_argv):
                                                                  op_fn=CUB_Dataset.list_to_tuple)):
                     boxes = utils.crop_boxes(boxes, im_sizes)
                     boxes = utils.box_transform(boxes, im_sizes)
-                    boxes = np.reshape(boxes, [-1, 1, 1, 4])
 
                     if phase == 'train':
                         _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
@@ -112,9 +111,6 @@ def main(unused_argv):
                             'boxes:0': boxes,
                             # 'training:0': phase == 'train',
                         })
-
-                    outputs = np.reshape(outputs, [-1, 4])
-                    boxes = np.reshape(boxes, [-1, 4])
 
                     acc = utils.compute_acc(outputs, boxes, im_sizes)
 

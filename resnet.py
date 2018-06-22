@@ -67,9 +67,10 @@ class Resnet18(object):
         conv5 = self.block(filters=512, strides=2).g(conv4, name="conv5")
 
         pool = tf.layers.average_pooling2d(inputs=conv5, pool_size=7, strides=1)
-        fc = tf.layers.dense(inputs=pool, units=4)
+        pool_flat = tf.layers.flatten(inputs=pool)
+        fc = tf.layers.dense(inputs=pool_flat, units=4)
 
-        boxes = tf.placeholder(dtype=tf.float32, shape=[None, 1, 1, 4], name="boxes")
+        boxes = tf.placeholder(dtype=tf.float32, shape=[None, 4], name="boxes")
 
         # loss_raw = tf.abs(fc - boxes)
         # loss = tf.where(loss_raw < 1, 0.5 * loss_raw ** 2, loss_raw - 0.5)
