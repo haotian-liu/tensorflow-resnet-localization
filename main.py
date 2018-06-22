@@ -94,7 +94,7 @@ def main(unused_argv):
                 bar = progressbar.ProgressBar()
 
                 for features, boxes, im_sizes in bar(BatchLoader(dataset, batch_size=FLAGS.batch_size,
-                                                                 pre_fetch=FLAGS.pre_fetch,
+                                                                 pre_fetch=FLAGS.pre_fetch, shuffle=(phase=='train'),
                                                                  op_fn=CUB_Dataset.list_to_tuple)):
                     boxes = utils.crop_boxes(boxes, im_sizes)
                     boxes = utils.box_transform(boxes, im_sizes)

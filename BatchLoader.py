@@ -8,6 +8,7 @@ class _BatchLoaderIter(object):
         self.batch_size = loader.batch_size
         self.num_threads = loader.num_threads
         self.dataset = loader.dataset
+        self.shuffle = loader.shuffle
         self.op_fn = loader.op_fn
         self.batch_buffer = Queue(loader.pre_fetch)
         self.steps = int(len(self.dataset) / self.batch_size)
@@ -19,7 +20,8 @@ class _BatchLoaderIter(object):
 
     def _batch_loader_fetcher(self):
         idxs = list(range(len(self.dataset)))
-        random.shuffle(idxs)
+        if self.shuffle:
+            random.shuffle(idxs)
         pool = ThreadPool(self.num_threads)
 
         for step in range(self.steps):
@@ -51,11 +53,12 @@ class _BatchLoaderIter(object):
 
 
 class BatchLoader(object):
-    def __init__(self, dataset, batch_size=32, pre_fetch=6, num_threads=4, op_fn=None):
+    def __init__(self, dataset, batch_size=32, pre_fetch=6, num_threads=4, shuffle=False, op_fn=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.pre_fetch = pre_fetch
         self.num_threads = num_threads
+        self.shuffle = shuffle
         self.op_fn = op_fn
 
     def __iter__(self):
