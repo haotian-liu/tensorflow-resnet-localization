@@ -48,8 +48,7 @@ class Resnet18(object):
         return Block(filters=filters, kernel_size=3, strides=strides, training=self.training)
 
     def preload(self):
-        # self.training = tf.placeholder(dtype=tf.bool, name="training")
-        self.training = True
+        self.training = tf.placeholder(dtype=tf.bool, name="training")
         features = tf.placeholder(dtype=tf.float32, shape=[self.batch_size, 224, 224, 3], name="features")
 
         # Preprocess: normalize

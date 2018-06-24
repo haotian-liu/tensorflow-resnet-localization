@@ -103,13 +103,13 @@ def main(unused_argv):
                         _, loss, outputs = sess.run([train_op, model.loss, model.fc], feed_dict={
                             'features:0': features,
                             'boxes:0': boxes,
-                            # 'training:0': phase == 'train',
+                            'training:0': phase == 'train',
                         })
                     else:
                         loss, outputs = sess.run([model.loss, model.fc], feed_dict={
                             'features:0': features,
                             'boxes:0': boxes,
-                            # 'training:0': phase == 'train',
+                            'training:0': phase == 'train',
                         })
 
                     acc = utils.compute_acc(outputs, boxes, im_sizes)
