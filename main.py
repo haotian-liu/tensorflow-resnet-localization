@@ -119,7 +119,7 @@ def main(unused_argv):
                     accs.update(acc, nsample)
                     losses.update(loss, nsample)
 
-                    LOG.add(phase, {"accu": acc, "loss": loss})
+                    LOG.add(phase, {"accu": float(acc), "loss": float(loss)})
 
                 elapsed_time = time.time() - start_time
                 print('[{}]\tEpoch: {}/{}\tLoss: {:.4f}\tAcc: {:.2%}\tTime: {:.3f}'.format(
