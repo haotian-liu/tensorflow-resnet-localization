@@ -76,7 +76,8 @@ def main(unused_argv):
 
     with tf.Session(graph=model.graph) as sess:
         if os.path.exists(utils.path("models/trained")):
-            tf.train.Saver().restore(sess, utils.path("models/trained/resnet18.ckpt"))
+            tf.train.Saver().restore(sess, tf.train.latest_checkpoint(
+                utils.path("models/trained/")))
         else:
             init_rest_vars.run()
             tf.train.Saver(vars).restore(sess, utils.path("models/init/models.ckpt"))
