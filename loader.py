@@ -72,15 +72,15 @@ class Loader(object):
         self.imgs, self.transform = None, None
 
     def CUB(self, ratio, total_ratio=1.0):
-        # pickle_path = utils.base_path() + "/data/datasets.pkl"
-        # if os.path.isfile(pickle_path):
-        #     print("Using pickled data!")
-        #     return pickle.load(open(pickle_path, 'rb'))
+        pickle_path = utils.base_path() + "/data/datasets.pkl"
+        if os.path.isfile(pickle_path):
+            print("Using pickled data!")
+            return pickle.load(open(pickle_path, 'rb'))
         train_id, test_id = self.split(ratio, total_ratio)
         splits = {'train': train_id, 'test': test_id}
         datasets = {split: CUB_Dataset(self.path, splits[split]) for split in ('train', 'test')}
-        # pickle.dump(datasets, open(pickle_path, 'wb'))
-        # print("Data loaded from disk and has been pickled!")
+        pickle.dump(datasets, open(pickle_path, 'wb'))
+        print("Data loaded from disk and has been pickled!")
         return datasets
 
     def split(self, ratio, total_ratio=1.0):
