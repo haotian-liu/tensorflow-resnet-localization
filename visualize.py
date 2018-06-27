@@ -68,28 +68,38 @@ with model.graph.as_default():
 
 with tf.Session(graph=model.graph) as sess:
     tf.train.Saver().restore(sess, tf.train.latest_checkpoint(utils.path("models/" + FLAGS.model + "/")))
-    fig = plt.figure(figsize=(2 * figs_x, 0.6 * figs_y))
     data_loader = BatchLoader(datasets['test'], batch_size=figs_x * figs_y, pre_fetch=1,
                               shuffle=True, op_fn=CUB_Dataset.list_to_tuple)
-    features, boxes, im_sizes = next(iter(data_loader))
-    boxes = utils.crop_boxes(boxes, im_sizes)
-    boxes = utils.box_transform(boxes, im_sizes)
+    fig = plt.figure(figsize=(2 * figs_x, 0.6 * figs_y))
 
-    pred_boxes = sess.run(model.fc, feed_dict={
-        'features:0': features,
-        'boxes:0': boxes,
-        'training:0': False,
-    })
+    max_iter = 100
+    for features, boxes, im_sizes in data_loader:
+        if not max_iter:
+            break
+        max_iter -= 1
 
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    ori_ims = std * features + mean
-    ori_ims = np.clip(ori_ims, 0, 1)
+        fig.clf()
 
-    for sub_id in range(figs_x * figs_y):
-        sub = fig.add_subplot(figs_x, figs_y, sub_id+1)
-        im, box, im_size, ori_im = features[sub_id], boxes[sub_id], im_sizes[sub_id], ori_ims[sub_id]
-        pred_box = pred_boxes[sub_id]
-        imshow(sub, ori_im, box, pred_box)
-    plt.show()
+        boxes = utils.crop_boxes(boxes, im_sizes)
+        boxes = utils.box_transform(boxes, im_sizes)
+
+        pred_boxes = sess.run(model.fc, feed_dict={
+            'features:0': features,
+            'boxes:0': boxes,
+            'training:0': False,
+        })
+
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])
+        ori_ims = std * features + mean
+        ori_ims = np.clip(ori_ims, 0, 1)
+
+        for sub_id in range(figs_x * figs_y):
+            sub = fig.add_subplot(figs_x, figs_y, sub_id+1)
+            im, box, im_size, ori_im = features[sub_id], boxes[sub_id], im_sizes[sub_id], ori_ims[sub_id]
+            pred_box = pred_boxes[sub_id]
+            imshow(sub, ori_im, box, pred_box)
+        plt.draw()
+        plt.waitforbuttonpress(0)
+    del data_loader
 

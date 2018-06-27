@@ -1,4 +1,4 @@
-from multiprocessing.dummy import Process as Thread, Lock, Pool as ThreadPool
+from multiprocessing.dummy import Process as Thread, Lock, Semaphore, Pool as ThreadPool
 from queue import Queue
 import random
 
@@ -17,6 +17,7 @@ class _BatchLoaderIter(object):
         self.fetcher.start()
         self.all_data_fetched = False
         self.mutex = Lock()
+        self.sema = Semaphore(value=0)
 
     def _batch_loader_fetcher(self):
         idxs = list(range(len(self.dataset)))
@@ -25,6 +26,8 @@ class _BatchLoaderIter(object):
         pool = ThreadPool(self.num_threads)
 
         for step in range(self.steps):
+            if self.sema.acquire(False):
+                return
             start_idx = step * self.batch_size
             end_idx = (step + 1) * self.batch_size
             images = pool.map(lambda idx: self.dataset[idxs[idx]], range(start_idx, end_idx))
@@ -48,8 +51,10 @@ class _BatchLoaderIter(object):
         self.mutex.release()
         return self.batch_buffer.get()
 
-    def __del__(self):
-        self.fetcher.join()
+    def pre_del(self):
+        self.sema.release()
+        with self.batch_buffer.mutex:
+            self.batch_buffer.queue.clear()
 
 
 class BatchLoader(object):
@@ -60,9 +65,14 @@ class BatchLoader(object):
         self.num_threads = num_threads
         self.shuffle = shuffle
         self.op_fn = op_fn
+        self.batch_loader_iter = _BatchLoaderIter(self)
 
     def __iter__(self):
-        return _BatchLoaderIter(self)
+        return self.batch_loader_iter
 
     def __len__(self):
         return int(len(self.dataset) / self.batch_size)
+
+    def __del__(self):
+        self.batch_loader_iter.pre_del()
+        del self.batch_loader_iter
