@@ -34,27 +34,28 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('log', None, 'Specify log path.')
 flags.DEFINE_string('model', None, 'Specify model path.')
 
-# log = json.load(open(utils.path("logs/" + FLAGS.log), "r"))
-# log = {phase: {
-#     stat_type: [x[stat_type] for x in log[phase]] for stat_type in ['loss', 'accu']
-# } for phase in log}
-# for phase in log:
-#     log[phase]['err'] = [1.0-x for x in log[phase]['accu']]
-#
-# # Plot statistics
-# tags = ('loss', 'err')
-# phases = ('train', 'test')
-# sub_line = len(tags)
-# sub_lines = sub_line * len(phases)
-# fig = plt.figure(figsize=(12, 2 * sub_lines))
-#
-# sub_id = 0
-# for phase in phases:
-#     for tag in tags:
-#         sub_id = sub_id + 1
-#         sub = fig.add_subplot(sub_lines, 1, sub_id)
-#         sub.plot(range(len(log[phase][tag])), log[phase][tag], label=(phase + '_' + tag))
-# plt.show()
+log = json.load(open(utils.path("logs/" + FLAGS.log), "r"))
+log = {phase: {
+    stat_type: [x[stat_type] for x in log[phase]] for stat_type in ['loss', 'accu']
+} for phase in log}
+for phase in log:
+    log[phase]['err'] = [1.0-x for x in log[phase]['accu']]
+
+# Plot statistics
+tags = ('loss', 'err')
+phases = ('train', 'test')
+sub_line = len(tags)
+sub_lines = sub_line * len(phases)
+fig = plt.figure(figsize=(12, 1.5 * sub_lines))
+sub_id = 0
+for phase in phases:
+    for tag in tags:
+        sub_id = sub_id + 1
+        sub = fig.add_subplot(sub_lines, 1, sub_id)
+        sub.plot(range(len(log[phase][tag])), log[phase][tag], label=(phase + '_' + tag))
+        sub.set_title(phase + ': ' + tag)
+fig.tight_layout()
+plt.show()
 
 # Visualize predicting result
 
@@ -103,7 +104,7 @@ with tf.Session(graph=model.graph) as sess:
                           color='black' if IoU>=0.75 else 'red')
             sub.axis('off')
             imshow(sub, ori_im, box, pred_box)
+        fig.tight_layout()
         plt.draw()
         plt.waitforbuttonpress(0)
     del data_loader
-
