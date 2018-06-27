@@ -9,6 +9,7 @@ from loader import Loader, CUB_Dataset
 from PIL import Image
 from resnet import Resnet18
 from matplotlib import pyplot as plt
+from BatchLoader import BatchLoader
 import json
 
 def imshow(fig, img, gt_box, pred_box=None):
@@ -58,36 +59,37 @@ flags.DEFINE_string('model', None, 'Specify model path.')
 
 # Visualize predicting result
 
+figs_x, figs_y = (5, 5)
 loader = Loader(base_path=None, path="/data")
 datasets = loader.CUB(ratio=0.2, total_ratio=1.0)
-model = Resnet18(batch_size=1)
+model = Resnet18(batch_size=figs_x*figs_y)
 with model.graph.as_default():
     model.preload()
 
 with tf.Session(graph=model.graph) as sess:
     tf.train.Saver().restore(sess, tf.train.latest_checkpoint(utils.path("models/" + FLAGS.model + "/")))
-    figs_x, figs_y = (2, 2)
-    fig = plt.figure(figsize=(5 * figs_x, 3 * figs_y))
+    fig = plt.figure(figsize=(2 * figs_x, 0.6 * figs_y))
+    data_loader = BatchLoader(datasets['test'], batch_size=figs_x * figs_y, pre_fetch=1,
+                              shuffle=True, op_fn=CUB_Dataset.list_to_tuple)
+    features, boxes, im_sizes = next(iter(data_loader))
+    boxes = utils.crop_boxes(boxes, im_sizes)
+    boxes = utils.box_transform(boxes, im_sizes)
+
+    pred_boxes = sess.run(model.fc, feed_dict={
+        'features:0': features,
+        'boxes:0': boxes,
+        'training:0': False,
+    })
+
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    ori_ims = std * features + mean
+    ori_ims = np.clip(ori_ims, 0, 1)
+
     for sub_id in range(figs_x * figs_y):
         sub = fig.add_subplot(figs_x, figs_y, sub_id+1)
-        ind = random.choice(range(len(datasets['test'])))
-        im, box, im_size = datasets['test'][ind]
-        path, _ = datasets['test'].imgs[ind]
-        box = utils.box_transform(box, im_size)[0]
-
-        pred_box = sess.run([model.fc], feed_dict={
-            'features:0': [im],
-            'boxes:0': [box],
-            'training:0': False,
-        })[0]
-        ori_im = np.array(Image.open(path))
-
-        # inp = im.transpose((1, 2, 0))
-        # inp = im
-        # mean = np.array([0.485, 0.456, 0.406])
-        # std = np.array([0.229, 0.224, 0.225])
-        # inp = std * inp + mean
-        # inp = np.clip(inp, 0, 1)
+        im, box, im_size, ori_im = features[sub_id], boxes[sub_id], im_sizes[sub_id], ori_ims[sub_id]
+        pred_box = pred_boxes[sub_id]
         imshow(sub, ori_im, box, pred_box)
     plt.show()
 

@@ -75,7 +75,16 @@ class Loader(object):
         pickle_path = utils.base_path() + "/data/datasets.pkl"
         if os.path.isfile(pickle_path):
             print("Using pickled data!")
-            return pickle.load(open(pickle_path, 'rb'))
+            datasets = pickle.load(open(pickle_path, 'rb'))
+            img_path = datasets["train"].imgs[0][0]
+            if utils.base_path() not in img_path:
+                import re
+                for phase in datasets:
+                    for i in range(len(datasets[phase])):
+                        path, o = datasets[phase].imgs[i]
+                        path = re.sub(r'^.*(data/images)', r'\1', path)
+                        datasets[phase].imgs[i] = (utils.path(path), o)
+            return datasets
         train_id, test_id = self.split(ratio, total_ratio)
         splits = {'train': train_id, 'test': test_id}
         datasets = {split: CUB_Dataset(self.path, splits[split]) for split in ('train', 'test')}
