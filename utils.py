@@ -9,6 +9,7 @@ def path(sub_path):
     return base_path() + "/" + sub_path
 
 def to_2d_tensor(inp):
+    inp = np.array(inp)
     if len(inp.shape) < 2:
         inp = np.expand_dims(inp, axis=0)
     return inp
