@@ -85,13 +85,15 @@ def compute_IoU(boxes1, boxes2):
 
     return ia / (a1 + a2 - ia)
 
-
-def compute_acc(preds, targets, im_sizes, theta=0.75):
+def compute_accu_items(preds, targets, im_sizes):
     preds = box_transform_inv(np.copy(preds), im_sizes)
     preds = crop_boxes(preds, im_sizes)
     targets = box_transform_inv(np.copy(targets), im_sizes)
     IoU = compute_IoU(preds, targets)
-    corr = (IoU >= theta).sum()
+    return IoU
+
+def compute_acc(preds, targets, im_sizes, theta=0.75):
+    corr = (compute_accu_items(preds, targets, im_sizes, theta) >= theta).sum()
     return corr / preds.shape[0]
 
 class Timer(object):

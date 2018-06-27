@@ -22,8 +22,7 @@ def imshow(fig, img, gt_box, pred_box=None):
         if y == 0:
             y = 1
         fig.add_patch(
-            plt.Rectangle((x, y), w, h,
-                          fill=False, edgecolor=color, linewidth=2, alpha=0.5)
+            plt.Rectangle((x, y), w, h, fill=False, edgecolor=color, linewidth=2, alpha=0.8)
         )
 
     draw_box(gt_box)
@@ -70,11 +69,11 @@ with tf.Session(graph=model.graph) as sess:
     tf.train.Saver().restore(sess, tf.train.latest_checkpoint(utils.path("models/" + FLAGS.model + "/")))
     data_loader = BatchLoader(datasets['test'], batch_size=figs_x * figs_y, pre_fetch=1,
                               shuffle=True, op_fn=CUB_Dataset.list_to_tuple)
-    fig = plt.figure(figsize=(2 * figs_x, 0.6 * figs_y))
+    fig = plt.figure(figsize=(6 * figs_x, 2 * figs_y))
 
     max_iter = 100
     for features, boxes, im_sizes in data_loader:
-        if not max_iter:
+        if not max_iter or not plt.fignum_exists(fig.number):
             break
         max_iter -= 1
 
@@ -94,10 +93,15 @@ with tf.Session(graph=model.graph) as sess:
         ori_ims = std * features + mean
         ori_ims = np.clip(ori_ims, 0, 1)
 
+        IoUs = utils.compute_accu_items(pred_boxes, boxes, im_sizes)
+
         for sub_id in range(figs_x * figs_y):
             sub = fig.add_subplot(figs_x, figs_y, sub_id+1)
             im, box, im_size, ori_im = features[sub_id], boxes[sub_id], im_sizes[sub_id], ori_ims[sub_id]
-            pred_box = pred_boxes[sub_id]
+            pred_box, IoU = pred_boxes[sub_id], IoUs[sub_id]
+            sub.set_title(("Correct" if IoU>=0.75 else "Incorrect") + ", IoU: " + str(IoU),
+                          color='black' if IoU>=0.75 else 'red')
+            sub.axis('off')
             imshow(sub, ori_im, box, pred_box)
         plt.draw()
         plt.waitforbuttonpress(0)
